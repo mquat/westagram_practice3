@@ -1,3 +1,68 @@
-from django.shortcuts import render
+import json, bcrypt, jwt 
 
-# Create your views here.
+from django.conf  import settings
+from django.forms import ValidationError
+
+from django.http  import JsonResponse
+from django.views import View
+
+from .models    import User
+from .validator import email_validate, password_validate
+from .utils import login_authorization
+
+class SignUpView(View):
+    @login_authorization
+    def post(self, request):
+        try: 
+            data = json.loads(request.body)
+            user         = data['user']
+            email        = data['email']
+            password     = data['password']
+            phone_number = data['phone_number']
+            etc_info     = data['etc_info']
+
+            email_validate(email)
+            password_validate(password)
+
+            if User.objects.get(email=email):
+                return JsonResponse({"message":"ID_ALREADY_EXISTS"}, status=401)
+            
+            hashed_password = bcrypt.hashpw(password.encode('utf-8'),bcrypt.gensalt()).decode('utf-8')
+            User.objects.create(
+                user         = user,
+                email        = email,
+                password     = hashed_password,
+                phone_number = phone_number,
+                etc_info     = etc_info
+            )
+            return JsonResponse({"message":"ACCOUNT_CREATED"}, status=201)
+        except KeyError:
+            return JsonResponse({"message":"KEY_ERROR"}, status=400)
+        except ValidationError as e:
+            print(e)
+  
+class SignInView(View):
+    @login_authorization
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+            user     = User.objects.get(email=email)
+            email    = data['email']
+            password = data['password']
+
+            email_validate(email)
+            password_validate(password)
+            
+            if not bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
+                return JsonResponse({"message":"INVALID_PASSWORD"}, status=401)
+            
+            access_token = jwt.encode({'id':user.id}, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+            return JsonResponse({"message":"SUCCESS", "token":access_token}, status=200)
+        except KeyError:
+            return JsonResponse({"message":"KEY_ERROR"}, status=400)
+        except User.DoesNotExist:
+            return JsonResponse({"message":"INVALID_ID"}, status=404)
+        except ValidationError as e:
+            print(e)
+
+            
