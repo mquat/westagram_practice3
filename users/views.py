@@ -8,10 +8,9 @@ from django.views import View
 
 from .models    import User
 from .validator import email_validate, password_validate
-from .utils import login_authorization
+from .utils     import login_decorator
 
 class SignUpView(View):
-    @login_authorization
     def post(self, request):
         try: 
             data = json.loads(request.body)
@@ -25,7 +24,7 @@ class SignUpView(View):
             password_validate(password)
 
             if User.objects.get(email=email):
-                return JsonResponse({"message":"ID_ALREADY_EXISTS"}, status=401)
+                return JsonResponse({'message':'ID_ALREADY_EXISTS'}, status=401)
             
             hashed_password = bcrypt.hashpw(password.encode('utf-8'),bcrypt.gensalt()).decode('utf-8')
             User.objects.create(
@@ -35,14 +34,12 @@ class SignUpView(View):
                 phone_number = phone_number,
                 etc_info     = etc_info
             )
-            return JsonResponse({"message":"ACCOUNT_CREATED"}, status=201)
+            return JsonResponse({'message':'ACCOUNT_CREATED'}, status=201)
         except KeyError:
-            return JsonResponse({"message":"KEY_ERROR"}, status=400)
-        except ValidationError as e:
-            print(e)
+            return JsonResponse({'message':'KEY_ERROR'}, status=400)
   
 class SignInView(View):
-    @login_authorization
+    @login_decorator
     def post(self, request):
         try:
             data = json.loads(request.body)
@@ -54,15 +51,15 @@ class SignInView(View):
             password_validate(password)
             
             if not bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
-                return JsonResponse({"message":"INVALID_PASSWORD"}, status=401)
+                return JsonResponse({'message':'INVALID_PASSWORD'}, status=401)
             
             access_token = jwt.encode({'id':user.id}, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
-            return JsonResponse({"message":"SUCCESS", "token":access_token}, status=200)
+            return JsonResponse({'token':access_token}, status=200)
         except KeyError:
-            return JsonResponse({"message":"KEY_ERROR"}, status=400)
+            return JsonResponse({'message':'KEY_ERROR'}, status=400)
         except User.DoesNotExist:
-            return JsonResponse({"message":"INVALID_ID"}, status=404)
+            return JsonResponse({'message':'INVALID_ID'}, status=404)
         except ValidationError as e:
-            print(e)
+            return JsonResponse({'message':e.message}, status=400)
 
             
