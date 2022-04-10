@@ -18,10 +18,8 @@ class SignUpView(View):
             email        = data['email']
             password     = data['password']
             phone_number = data['phone_number']
-            etc_info     = data['etc_info']
 
-            email_validate(email)
-            password_validate(password)
+            validate_signup(email,password)
 
             if User.objects.get(email=email):
                 return JsonResponse({'message':'ID_ALREADY_EXISTS'}, status=401)
@@ -31,8 +29,7 @@ class SignUpView(View):
                 user         = user,
                 email        = email,
                 password     = hashed_password,
-                phone_number = phone_number,
-                etc_info     = etc_info
+                phone_number = phone_number
             )
             return JsonResponse({'message':'ACCOUNT_CREATED'}, status=201)
         except KeyError:
@@ -46,8 +43,6 @@ class SignInView(View):
             user     = User.objects.get(email=email)
             email    = data['email']
             password = data['password']
-
-            validate_signup(email,password)
 
             if not bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
                 return JsonResponse({'message':'INVALID_PASSWORD'}, status=401)
