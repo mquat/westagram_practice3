@@ -7,7 +7,7 @@ from django.http  import JsonResponse
 from django.views import View
 
 from .models    import User
-from .validator import email_validate, password_validate
+from .validator import validate_signup
 from .utils     import login_decorator
 
 class SignUpView(View):
@@ -47,9 +47,8 @@ class SignInView(View):
             email    = data['email']
             password = data['password']
 
-            email_validate(email)
-            password_validate(password)
-            
+            validate_signup(email,password)
+
             if not bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
                 return JsonResponse({'message':'INVALID_PASSWORD'}, status=401)
             
@@ -60,6 +59,4 @@ class SignInView(View):
         except User.DoesNotExist:
             return JsonResponse({'message':'INVALID_ID'}, status=404)
         except ValidationError as e:
-            return JsonResponse({'message':e.message}, status=400)
-
-            
+            return JsonResponse({'message':e.message}, status=401)
